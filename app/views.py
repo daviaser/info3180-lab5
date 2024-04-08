@@ -6,7 +6,7 @@ This file creates your application.
 """
 
 from app import app
-from flask import render_template, request, jsonify, send_file, current_app, send_from_directory
+from flask import render_template, request, jsonify, send_file, send_from_directory, url_for
 from app import models, forms, db   
 from app.forms import MovieForm
 from app.models import Movie
@@ -22,6 +22,14 @@ import os
 @app.route('/')
 def index():
     return jsonify(message="This is the beginning of our API")
+
+@app.route('/api/v1/csrf-token', methods=['GET'])
+def get_csrf():
+ return jsonify({'csrf_token': generate_csrf()})
+
+@app.route('/api/v1/posters/<filename>', methods=['GET'])
+def get_poster(filename):
+    return send_from_directory(os.path.join(os.getcwd(), app.config['UPLOAD_FOLDER']), filename)
 
 @app.route('/api/v1/movies', methods=['POST'])
 def movies():
@@ -46,7 +54,21 @@ def movies():
     else:
         return jsonify({"errors": form_errors(form)}), 400
 
+@app.route('/api/v1/movies', methods=['GET'])
+def get_movies():
+    movies = Movie.query.all()
+    movies_list = []
+    for movie in movies:
+        movies_list.append({
+            'id': movie.id,
+            'title': movie.title,
+            'description': movie.description,
+            'poster': movie.poster,
+        })
+    return jsonify({'movies': movies_list})
 
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 ###
 # The functions below should be applicable to all Flask apps.
